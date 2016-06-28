@@ -2,9 +2,8 @@ const List = React.createClass({
     render() {
         return (
             <div className={this.props.status == false ? "list-title" : "list-title finish"}>
-            <span class="check" ></span>
-            <div class="textarea">{this.props.children}</div>
-            {this.props.status ? "✓ Photo Added" : "Add Photo" }
+            <span className="check" onClick={this.props.onStatus}></span>
+            <div className="textarea">{this.props.children}</div>
             <span className="delete-list" onClick={this.props.onDelete}> x </span>
             </div>
         );
@@ -47,6 +46,7 @@ const ListTable = React.createClass({
 
     render() {
         const onListDelete = this.props.onListDelete;
+        const onListStatus = this.props.onListStatus;
         return (
             <div className="list-table">
                 {
@@ -56,6 +56,7 @@ const ListTable = React.createClass({
                                 key={list.id}
                                 status={list.status}
                                 onDelete={onListDelete.bind(null, list)}
+                                onStatus={onListStatus.bind(null, list)}
                                 >
                                 {list.title}
                                 </List>
@@ -69,20 +70,33 @@ const ListTable = React.createClass({
 
 const ListSort = React.createClass({
     render() {
+        const sortButtons = ['all', 'new', 'completed'];
+        const onToDoSort = this.props.onToDoSort;
+        const currentFilter = this.props.currentFilter;
+
         return (
-            <div className="list-sort">
-            <div className="menu-item">All</div>
-            <div className="menu-item">New</div>
-            <div className="menu-item">Completed</div>
-            </div>
-            )
+            <ul className="list-sort">
+              {
+                sortButtons.map(name =>
+                    <li
+                        key={name}
+                        className={(name === currentFilter)? 'active': ''}
+                        onClick={onToDoSort.bind(null, name)}
+                    >
+                        {name}
+                    </li>
+                )
+              }
+            </ul>
+          );
     }
 });
 
 const TodoApp = React.createClass({
     getInitialState() {
         return {
-            lists: []
+            lists: [],
+            filter: 'all'
         };
     },
 
@@ -111,15 +125,40 @@ const TodoApp = React.createClass({
         this.setState({ lists: newLists});
     },
 
+    handleListStatus(newList) {
+        var newLists = this.state.lists.slice();
+        newLists.forEach(el => {
+          if(el.id === newList.id) {
+            el.status = !newList.status
+          }
+        });
+        this.setState({ lists: newLists});
+    },
+
+    onToDoSort(filter){
+        this.setState({filter: filter});
+    },
+
     render() {
         return (
             <div className="lists-app">
                 <h2 className="app-header">To-do list</h2>
                 <AddList onListAdd={this.handleListAdd} />
-                <ListTable lists={this.state.lists} onListDelete={this.handleListDelete} />
-                <ListSort />
+                <ListTable lists={ this._getVisibleToDos(this.state.lists, this.state.filter) } onListDelete={this.handleListDelete} onListStatus={this.handleListStatus} />
+                <ListSort currentFilter={this.state.filter}  onToDoSort={this.onToDoSort} />
             </div>
         );
+    },
+
+    _getVisibleToDos(todos, filter){
+        if (filter === 'completed') {
+            return todos.filter(todo => todo.status);
+        }
+        if (filter === 'new') {
+            return todos.filter(todo => !todo.status);
+        }
+
+        return todos;
     },
 
     _updateLocalStorage() {
